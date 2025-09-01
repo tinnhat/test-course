@@ -1,4 +1,5 @@
 import React from 'react'
+import { GreetProps } from './greet.types'
 
 export const Greet = (props: GreetProps) => {
   const { name } = props

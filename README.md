@@ -1,46 +1,223 @@
-# Getting Started with Create React App
+- summary test using jest
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+* Có 3 loại test:
 
-## Available Scripts
+  - Unit test
+  - Integration test
+  - E2E test
 
-In the project directory, you can run:
+* TDD (Test Driven Development)
 
-### `npm start`
+- Các step cơ bản khi viết test:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+  - Render component
+  - Tìm element được render bởi component
+  - Xác nhận lại có tìm thấy component được render ở step 2 hay không
+    -> Fail or pass test
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+- Các function test:
 
-### `npm test`
+* Để tìm một element trong page: (sync)
+  - GetBy:
+    - getByRole → tìm theo vai trò (role) như button, textbox, heading
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```ts
+const setButton = screen.getByRole('button', { name: /set/i })
+```
 
-### `npm run build`
+    + getByLabelText → tìm theo label gắn với form control
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```ts
+const termsElement = screen.getByLabelText('I agree to the terms and conditions')
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Lưu ý: có thể sẽ bị trùng label hoặc textcontent, sử dụng kèm theo selector để chi tiết
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```ts
+const nameElement = screen.getByLabelText('tesst', { selector: 'input' })
+```
 
-### `npm run eject`
+    + getByPlaceholderText → tìm theo placeholder trong input/textarea.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```ts
+const testElement = screen.getByPlaceholderText('input in here')
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+    + getByText → tìm theo nội dung text hiển thị
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+```ts
+const textElement = screen.getByText('text content')
+```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+    + getByDisplayValue → tìm theo giá trị hiện tại của input/textarea/select
 
-## Learn More
+```ts
+const valueElement = screen.getByDisplayValue('test123')
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+    + getByAltText → tìm theo thuộc tính alt (dùng nhiều cho <img>)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```ts
+const imageElement = screen.getByAltText('Description_image')
+```
+
+    + getByTitle → tìm theo title attribute
+
+```ts
+const spanElement = screen.getByTitle('this is a test')
+```
+
+    + getByTestId → tìm theo data-testid (nên dùng hạn chế)
+
+```ts
+;` <div data-testid='custom-element'>Custom HTML element</div>`
+const customElement = screen.getByTestId('custom-element')
+```
+
+- Để nhiều element trong page (tương tự như getBy...):
+  - getAllByRole
+  - getAllByLabelText
+  - getAllByPlaceholderText
+  - getAllByText
+  - getAllByDisplayValue
+  - getAllByAltText
+  - getAllByTitle
+  - getAllByTestId
+-
+
+- Độ ưu tiên khi sử dụng queries:
+
+* getByRole
+* getByLabelText
+* getByPlaceholderText
+* getByText
+* getByDisplayValue
+* getByAltText
+* getByTitle
+* getByTestId
+
+- Để tìm một element trong page: (async):
+
+* queryBy (Không tìm thấy trả về null)
+* findBy (trả về promise, không tìm thấy trả về error)
+  -> các phương thức con của findBy và queryBy cũng giống như getBy
+  ex: queryByRole, queryAllByRole / findByRole, findAllByRole
+
+* có thể track user tương tác qua pointer hoặc keyboard:
+
+```ts
+test('should increment the counter value when button is clicked', async () => {
+  render(<Counter />)
+  const buttonElement = screen.getByRole('button', { name: /increment/i })
+  await user.click(buttonElement)
+  const counterElement = screen.getByText(/counter: 1/i)
+  expect(counterElement).toBeInTheDocument()
+})
+
+test('elements are focus in the right order', async () => {
+  render(<Counter />)
+  const incrementButton = screen.getByRole('button', { name: /increment/i })
+  const amountInput = screen.getByRole('spinbutton')
+  const setButton = screen.getByRole('button', { name: /set/i })
+
+  await user.tab()
+  expect(incrementButton).toHaveFocus()
+
+  await user.tab()
+  expect(amountInput).toHaveFocus()
+
+  await user.tab()
+  expect(setButton).toHaveFocus()
+})
+```
+
+- Đối với các provider (MUI, Antd, ...) test theme:
+
+```ts
+//MUI
+import { render, RenderOptions } from '@testing-library/react'
+import { ReactElement } from 'react'
+import { AppProvider } from './components/providers/app-provider'
+
+const customRender = (ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) =>
+  render(ui, { wrapper: AppProvider, ...options })
+
+export * from '@testing-library/react'
+export { customRender as render }
+
+describe('MuiMode', () => {
+  it('renders the current theme mode', () => {
+    render(<MuiMode />)
+    const heading = screen.getByRole('heading')
+    expect(heading).toHaveTextContent('dark mode')
+  })
+})
+```
+
+Đối với các hook/custom hook: react hỗ trợ 'act' để tương tác và renderHook trong jest
+
+```ts
+import { act } from 'react'
+test('Should accept and render the same initial count', () => {
+  const { result } = renderHook(() => useCounter({ initialCount: 5 }))
+  expect(result.current.count).toBe(5)
+})
+
+//custom hook
+import { useState } from 'react'
+import { UseCounterProps } from './userCounter.type'
+
+export const useCounter = ({ initialCount = 0 }: UseCounterProps = {}) => {
+  const [count, setCount] = useState(initialCount)
+  const increment = () => setCount(c => c + 1)
+  const decrement = () => setCount(c => c - 1)
+  const reset = () => setCount(initialCount)
+
+  return { count, increment, decrement, reset }
+}
+
+//test
+test('should increment the count', () => {
+  const { result } = renderHook(useCounter)
+  act(() => {
+    result.current.increment()
+  })
+  expect(result.current.count).toBe(1)
+})
+```
+
+- Mocking function test: jest hỗ trợ các function(giả lập func)
+
+```ts
+test('Handlers are call', async () => {
+  const handleIncrement = jest.fn()
+  const handleDecrement = jest.fn()
+  render(
+    <CounterTwo count={0} handleIncrement={handleIncrement} handleDecrement={handleDecrement} />
+  )
+  const incrementButton = screen.getByText('Increment')
+  const decrementButton = screen.getByText('Decrement')
+  await user.click(incrementButton)
+  expect(handleIncrement).toHaveBeenCalledTimes(1)
+  await user.click(decrementButton)
+  expect(handleDecrement).toHaveBeenCalledTimes(1)
+})
+```
+
+- Mocking data fake (API):
+
+```ts
+test('renders a list of users', async () => {
+  render(<User />)
+  const users = await screen.findAllByRole('listitem')
+  expect(users).toHaveLength(3)
+})
+```
+
+- Static test analysis:
+  + Typescript
+  + ESlint
+  + Prettier
+  + Husky
+  + lint-staged
+  
